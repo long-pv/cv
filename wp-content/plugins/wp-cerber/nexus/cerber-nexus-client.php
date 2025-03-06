@@ -91,12 +91,7 @@ class CRB_Master {
 		$this->at_site    = crb_array_get( $request, 'at_site' );
 		$this->screen     = crb_array_get( $request, 'screen' );
 		$this->is_post    = ! empty( $request['is_post'] );
-
-		if ( ! $this->locale = crb_array_get( $request, 'master_locale' ) ) {
-			if ( ! $this->locale = get_site_option( 'WPLANG' ) ) {
-				$this->locale = 'en_US';
-			}
-		}
+		$this->locale = crb_array_get( $request, 'master_locale', '' );
 
 		CRB_Globals::set_assets_url( $request['assets'] );
 
@@ -154,44 +149,26 @@ function nexus_client_process() {
 		return;
 	}
 
+	nexus_diag_log( '=== NEXUS CLIENT STARTED ' . CERBER_VER . ' ===' );
+	cerber_update_set( 'processing_master_request', 1, 0, false, time() + 120 );
+
 	@ini_set( 'display_errors', 0 );
 	@ignore_user_abort( true );
 	crb_raise_limits();
 
-	cerber_update_set( 'processing_master_request', 1, 0, false, time() + 120 );
+	cerber_load_wp_constants();
 
 	nexus_diag_log( 'Parsing request...' );
 
-	$crb_master = nexus_request_data();
+	$cerber_hub = nexus_request_data();
 
-	if ( crb_is_wp_error( $crb_master->error ) ) {
-		nexus_diag_log( 'ERROR: ' . $crb_master->error->get_error_message() );
+	if ( crb_is_wp_error( $cerber_hub->error ) ) {
+		nexus_diag_log( 'ERROR: ' . $cerber_hub->error->get_error_message() );
 
 		exit;
 	}
 
-	nexus_diag_log( 'Request is OK, generating response...' );
-
-	add_filter( 'plugin_locale', function () {
-		return nexus_request_data()->locale;
-	}, 9999 );
-
-	$use_eng = false;
-	if ( nexus_request_data()->locale == 'en_US' ) {
-		$use_eng = true;
-		// We do not load any translation files
-		add_filter( 'override_load_textdomain', function ( $val, $domain, $mofile ) {
-			return true;
-		}, 9999, 3 );
-	}
-
-	if ( ! $use_eng ) {
-		$r = load_plugin_textdomain( 'wp-cerber', false, 'wp-cerber/languages' );
-
-		/*if ( ! $r ) {
-			nexus_diag_log( 'Unable to load plugin localization files ' . (string) nexus_request_data()->locale );
-		}*/
-	}
+	nexus_diag_log( 'Request is OK, preparing WordPress environment...' );
 
 	require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 	require_once( ABSPATH . 'wp-admin/includes/template.php' );
@@ -199,6 +176,9 @@ function nexus_client_process() {
 	require_once( ABSPATH . WPINC . '/vars.php' );
 
 	cerber_load_admin_code();
+	crb_load_localization();
+
+	nexus_diag_log( 'Now generating the response...' );
 
 	$response = nexus_prepare_response();
 
@@ -209,7 +189,7 @@ function nexus_client_process() {
 		$response = array( 'error' => $error );
 	}
 
-	nexus_diag_log( 'Now sending response to the main website...' );
+	nexus_diag_log( 'Sending the response to the main website...' );
 
 	$result = nexus_net_send_responce( $response );
 
@@ -218,9 +198,9 @@ function nexus_client_process() {
 	}
 
 	cerber_delete_set( 'processing_master_request' );
-	nexus_diag_log( '=== NEXUS CLIENT HAS FINISHED ===' );
-	exit;
+	nexus_diag_log( '=== NEXUS CLIENT FINISHED ' . CERBER_VER . ' ===' );
 
+	exit;
 }
 
 /**
@@ -423,43 +403,54 @@ function nexus_process_wp_settings_form( $form ) {
 }
 
 /**
+ * Sends response to the main website.
+ *
  * @param string|array $payload
  *
  * @return bool|WP_Error
  */
 function nexus_net_send_responce( $payload ) {
-	$ret  = true;
-	$role = nexus_get_role_data();
+	$ret = true;
+	$status = '';
+
 	if ( is_array( $payload ) ) {
-		$p = json_encode( $payload, JSON_UNESCAPED_UNICODE ); // 8.0.5
+		$p = json_encode( $payload, JSON_UNESCAPED_UNICODE );
 	}
 	elseif ( is_scalar( $payload ) ) {
 		$p = (string) $payload;
 	}
 	else {
-		$p   = '';
+		$p = '';
 		$ret = new WP_Error( 'wrong_type', 'Unsupported payload format' );
 	}
 
 	$processing = microtime( true ) - cerber_request_time();
 
-	$hash     = hash( 'sha512', $role['slave']['nx_echo'] . sha1( $p ) );
+	$role = nexus_get_role_data();
+
+	$hash = hash( 'sha512', $role['slave']['nx_echo'] . sha1( $p ) );
+
 	$response = json_encode( array(
-		'payload'  => $payload,
-		'extra'    => array(
+		'payload' => $payload,
+		'extra'   => array(
 			'versions' => array( CERBER_VER, cerber_get_wp_version(), PHP_MAJOR_VERSION, PHP_MINOR_VERSION, PHP_RELEASE_VERSION, PHP_OS, lab_lab( 2 ) )
 		),
-		'echo'     => $hash,
-		'p_time'   => $processing,
-		'scheme' => 2 // 8.0.5
+		'echo'    => $hash,
+		'p_time'  => $processing,
+		'scheme'  => 2 // 8.0.5
 	), JSON_UNESCAPED_UNICODE );
 
 	if ( JSON_ERROR_NONE != json_last_error() ) {
-		$response = 'Unable to encode payload. JSON error.';
-		$ret      = new WP_Error( 'json_error', 'Unable to encode JSON: ' . json_last_error_msg() );
+		$response = 'Unable to encode response payload. JSON encoding error.';
+		$status = $response;
+
+		$ret = new WP_Error( 'json_error', 'Unable to encode JSON: ' . json_last_error_msg() );
 	}
 
-	echo $response; // To master
+	// Send response to the main website
+
+	header( "X-Client-Status: " . $status );
+	echo $response;
 
 	return $ret;
 }

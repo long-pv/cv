@@ -42,7 +42,7 @@ add_action( 'admin_init', function () {
 
 	crb_show_phpinfo();
 	crb_settings_processor();
-	crb_do_export();
+	crb_do_export_settings();
 	crb_do_import();
 	crb_delete_alert();
 	crb_admin_headers();
@@ -1560,6 +1560,62 @@ function crb_get_file_owner( $file ): string {
 	return $ret;
 }
 
+/**
+ * Checks for the existence of installed WP Cerber translation files for a given WordPress locale.
+ *
+ * It checks files in the /wp-content/languages/plugins/ directory (see also WP_LANG_DIR).
+ *
+ * @param string $locale True if translation files exists for the given WP locale.
+ *
+ * @return bool
+ *
+ * @since 9.6.6.14
+ */
+function crb_is_translation_exists( string $locale ): bool {
+	$installed = wp_get_installed_translations( 'plugins' );
+
+	return ! empty( $installed['wp-cerber'][ $locale ] );
+}
+
+/**
+ * Forces the download of translation files for a specified locale.
+ *
+ * This function forces WordPress to download the WP Cerber translation files (.mo and .po)
+ * from the WP Cerber translation repository.
+ *
+ * It bypasses any checks and always overwrites any existing translation files
+ * in the /wp-content/languages/plugins/ directory (see also WP_LANG_DIR).
+ *
+ * @param string $locale The WordPress locale to download (e.g., 'es_ES', 'fr_FR').
+ *
+ * @return void
+ *
+ * @since 9.6.6.14
+ */
+function crb_download_translations( string $locale ) {
+	ob_start();
+
+	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	require_once ABSPATH . 'wp-includes/pluggable.php';
+	require_once ABSPATH . 'wp-admin/includes/misc.php';
+
+	WP_Filesystem();
+	$upgrader = new Language_Pack_Upgrader( new WP_Upgrader_Skin() );
+
+	$translation_data = (object) array(
+		'type'     => 'plugin',
+		'slug'     => 'wp-cerber',
+		'language' => $locale,
+		'version'  => CERBER_VER,
+		'package'  => 'https://downloads.wpcerber.com/translations/wp-cerber/' . $locale . '.zip',
+	);
+
+	$upgrader->upgrade( $translation_data );
+
+	ob_get_clean();
+}
 
 add_filter( 'manage_application-passwords-user_columns', function ( $columns ) {
 	end( $columns );

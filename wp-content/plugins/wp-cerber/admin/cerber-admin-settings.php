@@ -347,7 +347,7 @@ function cerber_settings_config( $args = array() ) {
 					),
 					'cerber_sw_repo'   => array(
 						'title'     => __( "Use WP Cerber's plugin repository", 'wp-cerber' ),
-						'label'     => __( 'Allow updating WP Cerber from its official website', 'wp-cerber' ),
+						'label'     => __( 'Allow updating WP Cerber and its translations from the official WP Cerber website', 'wp-cerber' ),
 						'type'      => 'checkbox',
 						'doclink'   => 'https://wpcerber.com/cerber-sw-repository/',
 						'on_change' => function () {
@@ -444,7 +444,7 @@ function cerber_settings_config( $args = array() ) {
 					),
 				),
 			),
-			'prefs'     => array(
+			'prefs' => array(
 				'name'   => __( 'Personal Preferences', 'wp-cerber' ),
 				'fields' => array(
 					'ip_extra'       => array(
@@ -468,6 +468,33 @@ function cerber_settings_config( $args = array() ) {
 						'title' => 'Use English',
 						'label' => 'Use English for the plugin admin pages',
 						'type'  => 'checkbox',
+						'enabler'    => array( 'cerber_sw_repo', '' ),
+					),
+					'admin_locale' => array(
+						'title'      => __( 'Language for the plugin admin pages', 'wp-cerber' ),
+						'type'       => 'select',
+						'pre_render' => function ( &$val, &$att, &$config ) {
+
+							$result = crb_get_admin_languages( $set );
+
+							$set = array_merge( array( 0 => __( 'Default language', 'wp-cerber' ) ), $set );
+
+							$config['set'] = $set;
+
+							if ( crb_is_wp_error( $result ) ) {
+								crb_admin_error_notice( $result );
+							}
+						},
+						'on_change' => function ( $new ) {
+							if ( $new
+							     && $new != 'en_US'
+							     && ! crb_is_translation_exists( $new ) ) {
+
+								cerber_admin_message( __( 'Language files for the selected language will be installed shortly.', 'wp-cerber' ) );
+								cerber_bg_task_add( 'crb_download_translations', array( 'args' => array( $new ), 'load_admin' => 1 ) );
+							}
+						},
+						'enabler'    => array( 'cerber_sw_repo' ),
 					),
 					'top_admin_menu' => array(
 						'title' => __( 'Shift admin menu', 'wp-cerber' ),
@@ -2332,7 +2359,7 @@ function cerber_field_show( $config ) {
 	if ( ( $pre_render = $config['pre_render'] ?? false )
 	     && is_callable( $pre_render ) ) {
 
-		call_user_func_array( $pre_render, array( &$value, &$attrs ) );
+		call_user_func_array( $pre_render, array( &$value, &$attrs, &$config ) );
 	}
 
     // Remove empty attributes including binary ones
@@ -2669,21 +2696,31 @@ function cerber_nonce_field( $action = 'control', $echo = false ) {
 	echo $nf . $sf;
 }
 
-function crb_admin_submit_button( $text = '', $echo = false ) {
-	if ( ! $text ) {
-		$text = __( 'Save Changes' );
+/**
+ * Generates a WordPress admin submit button, optionally disabled.
+ *
+ * @param string $text  Optional. Button text. Defaults to "Save Changes".
+ * @param bool   $echo  Optional. Whether to echo the HTML. Defaults to false.
+ *
+ * @return string The button HTML. Safe in any context.
+ */
+function crb_admin_submit_button( string $text = '', bool $echo = false ) {
+
+	$text = $text ?: __( 'Save Changes', 'wp-cerber' );
+
+	$disabled    = '';
+	$hint_text = '';
+
+	if ( nexus_is_valid_request()
+         && ! nexus_is_granted( 'submit' ) ) {
+		$disabled    = 'disabled="disabled"';
+		$hint_text = ' not available in the read-only mode';
 	}
 
-	$d    = '';
-	$hint = '';
-	if ( nexus_is_valid_request() && ! nexus_is_granted( 'submit' ) ) {
-		$d    = 'disabled="disabled"';
-		$hint = ' not available in the read-only mode';
-	}
+	$html = '<p class="submit"><input ' . $disabled . ' type="submit" name="submit" id="submit" class="button button-primary" value="' . esc_attr( $text ) . '" /> ' . esc_html( $hint_text ) . '</p>';
 
-	$html = '<p class="submit"><input ' . $d . ' type="submit" name="submit" id="submit" class="button button-primary" value="' . $text . '"  /> ' . $hint . '</p>';
 	if ( $echo ) {
-		echo $echo;
+		echo $html;
 	}
 
 	return $html;
@@ -3516,4 +3553,110 @@ function crb_htaccess_admin( $file ) {
 	}
 
 	return true;
+}
+
+/**
+ * Retrieves and caches the list of languages available for the WP Cerber admin interface.
+ * Function fetches the list of translations from the WP Cerber repo.
+ *
+ * @param array[] &$set Languages in an array as pairs [ locale => language name ]
+ *
+ * @return void|WP_Error Returns WP_Error if fetching available languages fails
+ *
+ * @since 9.6.6.14
+ */
+function crb_get_admin_languages( &$set = array() ) {
+
+	if ( ( $set = get_site_transient( 'wp_cerber_lang_set' ) )
+	     && is_array( $set ) ) {
+
+		return;
+	}
+
+	$set = array();
+
+	if ( ! include_once( ABSPATH . 'wp-admin/includes/translation-install.php' ) ) {
+
+		return new WP_Error( 'include_failed', 'Unable to load translation-install.php' );
+	}
+
+	$list = array();
+
+	// Get list if language names
+
+	if ( $wp_langs = wp_get_available_translations() ) {
+		$list = crb_array_column( $wp_langs, 'native_name' );
+	}
+
+	// Get available translations
+
+	$data = crb_get_remote_json( 'https://downloads.wpcerber.com/versions/wp-cerber.json' );
+
+	if ( crb_is_wp_error( $data ) ) {
+		crb_admin_error_notice( $data );
+
+		return $data;
+	}
+
+	if ( ! $crb_locales = $data[ CERBER_PLUGIN_ID ]['trans_bucket'] ?? false ) {
+
+		return new WP_Error( 'no_trans_bucket', 'Unable to load available languages' );
+	}
+
+	// Prepare list of languages
+
+	$crb_locales = array_filter( $crb_locales );
+	$list = array_intersect_key( $list, $crb_locales );
+
+	$list = array_filter( $list, function ( $key ) {
+		return strpos( $key, 'en_' ) !== 0;
+	}, ARRAY_FILTER_USE_KEY );
+
+	$list['en_US'] = 'English';
+	ksort( $list );
+
+	set_site_transient( 'wp_cerber_lang_set', $list, DAY_IN_SECONDS );
+
+    $set = $list;
+}
+
+/**
+ * Determines the locale for rendering the WP Cerber admin pages for the current user.
+ *
+ * The locale is selected based on plugin settings and user preferences,
+ * prioritizing the configured admin language, with a fallback to the user's locale.
+ *
+ * @param int $user_id User's ID or a WP_User object. Defaults to current user.
+ *
+ * @return string WordPress locale used for rendering admin pages.
+ *
+ * @since 9.6.6.14
+ */
+function crb_get_admin_locale( int $user_id = 0 ): string {
+    static $locale;
+
+	if ( $locale ) {
+		return $locale;
+	}
+
+	$locale = '';
+
+	if ( nexus_is_valid_request()
+	     && $locale = nexus_request_data()->locale ) {
+
+		return $locale;
+	}
+
+	if ( crb_get_settings( 'cerber_sw_repo' ) ) {
+		$locale = crb_get_settings( 'admin_locale' );
+	}
+    elseif ( crb_get_settings( 'admin_lang' ) ) {
+		$locale = 'en_US';
+	}
+
+	if ( ! $locale ) {
+		$locale = get_user_locale( $user_id );
+	}
+
+	return $locale;
 }

@@ -328,6 +328,7 @@ function cerber_get_defaults( $setting = null, $dynamic = true ) {
 			'dateformat'     => '',
 			'plain_date'     => 0,
 			'admin_lang'     => 0,
+			'admin_locale'   => 0,
 			'top_admin_menu' => 1,
 			'no_white_my_ip' => 0,
 			//'log_errors'   => 1
@@ -489,7 +490,7 @@ function cerber_get_defaults( $setting = null, $dynamic = true ) {
 			'ds_4opts_list'  => array(),
 			'ds_4opts_acl'   => 0,
 		),
-		CERBER_OPT_S => array(
+		CERBER_OPT_S     => array(
 			'scan_cpt'            => array(),
 			'scan_uext'           => array( 'tmp', 'temp', 'bak' ),
 			'scan_exclude'        => array(),
@@ -618,13 +619,16 @@ function crb_get_default_pro() {
 /**
  * Upgrades WP Cerber settings from previous versions and formats
  *
- * @param string $ver The previous version we are upgrading from
+ * @param string $ver The previous version we are upgrading from.
  *
  * @return void
  */
 function cerber_upgrade_settings( $ver = '' ) {
 
-	if ( $ver && version_compare( $ver, '9.3.4', '<' ) ) {
+	if ( $ver
+	     && defined( 'CRB_DOING_UPGRADE' ) && CRB_DOING_UPGRADE
+	     && version_compare( $ver, '9.3.4', '<' ) ) {
+
 		$settings = _cerber_get_site_old_options();
 
 		// Run it after all add-ons are loaded
@@ -655,9 +659,20 @@ function cerber_upgrade_settings( $ver = '' ) {
 
 	// End of renaming
 
+	// Add new settings (fields) with their default values
+
 	$defs = crb_get_default_values();
 
-	// Add new settings (fields) with their default values
+	if ( $ver
+	     && version_compare( $ver, '9.6.7', '<' ) ) {
+
+		// Set English if it was enabled previously via 'admin_lang' and the repo is enabled
+
+		if ( ! empty( $settings['admin_lang'] )
+		     && ! empty( $settings['cerber_sw_repo'] ) ) {
+			$settings['admin_locale'] = 'en_US'; // @since 9.6.7
+		}
+	}
 
 	foreach ( $defs as $field_name => $default ) {
 		if ( ! isset( $settings[ $field_name ] ) ) {

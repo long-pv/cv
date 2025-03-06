@@ -31,35 +31,35 @@
 
 function cerber_show_imex() {
 
-	$form = '<h3>' . __( 'Export settings to the file', 'wp-cerber' ) . '</h3>';
-	$form .= '<p>' . __( 'When you click the button below you will get a configuration file, which you can upload on another site.', 'wp-cerber' ) . '</p>';
-	$form .= '<p>' . __( 'What do you want to export?', 'wp-cerber' ) . '</p><form action="" method="get">';
+	$form = '<h3>' . __( 'Export WP Cerber Settings to File', 'wp-cerber' ) . '</h3>';
+	$form .= '<p>' . __( 'Export a configuration file to back up your settings and restore them on another site.', 'wp-cerber' ) . '</p>';
+	$form .= '<p>' . __( 'What do you want to include in the export?', 'wp-cerber' ) . '</p><form action="" method="get">';
 	$form .= '<input id="exportset" name="exportset" value="1" type="checkbox" checked> <label for="exportset">' . __( 'Settings', 'wp-cerber' ) . '</label>';
 	$form .= '<p><input id="exportacl" name="exportacl" value="1" type="checkbox" checked> <label for="exportacl">' . __( 'Access Lists', 'wp-cerber' ) . '</label>';
-	$form .= '<p><input type="submit" name="cerber_export" id="submit" class="button button-primary" value="' . __( 'Download file', 'wp-cerber' ) . '"></form>';
+	$form .= '<p><input type="submit" name="cerber_export" id="submit" class="button button-primary" value="' . __( 'Download File', 'wp-cerber' ) . '"></form>';
 
 	$nf = wp_nonce_field( 'crb_import', 'crb_field' );
 
-	$form .= '<h3 style="margin-top:2em;">' . __( 'Import settings from the file', 'wp-cerber' ) . '</h3>';
-	$form .= '<p>' . __( 'When you click the button below, file will be uploaded and all existing settings will be overridden.', 'wp-cerber' ) . '</p>';
+	$form .= '<h3 style="margin-top:2em;">' . __( 'Import WP Cerber Settings from File', 'wp-cerber' ) . '</h3>';
+	$form .= '<p>' . __( 'Import a configuration file to replace your existing settings.', 'wp-cerber' ) . '</p>';
 	$form .= '<p>' . __( 'Select file to import.', 'wp-cerber' ) . ' ' . sprintf( __( 'Maximum upload file size: %s.' ), esc_html( size_format( wp_max_upload_size() ) ) );
 	$form .= '<form action="" method="post" enctype="multipart/form-data">' . $nf;
 	$form .= '<p><input type="file" name="ifile" id="ifile" required="required">';
 	$form .= '<p>' . __( 'What do you want to import?', 'wp-cerber' ) . '</p><p><input id="importset" name="importset" value="1" type="checkbox" checked> <label for="importset">' . __( 'Settings', 'wp-cerber' ) . '</label>';
 	$form .= '<p><input id="importacl" name="importacl" value="1" type="checkbox" checked> <label for="importacl">' . __( 'Access Lists', 'wp-cerber' ) . '</label>';
-	$form .= '<p><input type="submit" name="cerber_import" id="submit" class="button button-primary" value="' . __( 'Upload file', 'wp-cerber' ) . '"></p></form>';
+	$form .= '<p><input type="submit" name="cerber_import" id="submit" class="button button-primary" value="' . __( 'Upload File', 'wp-cerber' ) . '"></p></form>';
 
-	$form .= '<h3 style="margin-top:2em;">' . __( 'Load the default plugin settings', 'wp-cerber' ) . '</h3>';
-	$form .= '<p>' . __( 'When you click the button below, the default WP Cerber settings will be loaded. The Custom login URL and Access Lists will not be changed.', 'wp-cerber' ) . '</p>';
+	$form .= '<h3 style="margin-top:2em;">' . __( 'Restore Default WP Cerber Settings', 'wp-cerber' ) . '</h3>';
+	$form .= '<p>' . __( 'Revert WP Cerber settings to their defaults. Your Custom Login URL and IP Access Lists will not be changed.', 'wp-cerber' ) . '</p>';
 	$form .= '<p>' . __( 'To get the most out of WP Cerber, follow these steps:', 'wp-cerber' ) . ' <a target="_blank" href="https://wpcerber.com/getting-started/">Getting Stared Guide</a></p>';
 
 	$form .= '<p>
-				<input type="button" class="button button-primary" value="' . __( 'Load default settings', 'wp-cerber' ) . '" onclick="button_default_settings()" />
+				<input type="button" class="button button-primary" value="' . __( 'Restore Default Settings', 'wp-cerber' ) . '" onclick="button_default_settings()" />
 				
 				<script id="wp-cerber-js-' . crb_sanitize_id( __FUNCTION__ . '_' . __LINE__ ) . '">
 				
 				function button_default_settings(){
-		                if (confirm("' . __( 'Are you sure?', 'wp-cerber' ) . '")) {
+		                if (confirm( crb_admin_messages.are_you_sure )) {
 			                let click_url = "' . cerber_admin_link_add( array( 'load_settings' => 'default', 'cerber_admin_do' => 'load_defaults' ) ) . '";
 			                window.location = click_url.replace(/&amp;|&#038;/g,"&");
 					    }
@@ -84,7 +84,7 @@ function cerber_show_imex() {
  *
  * @return void
  */
-function crb_do_export() {
+function crb_do_export_settings() {
 	global $wpdb;
 
 	if ( ! cerber_is_http_get() || ! isset( $_GET['cerber_export'] ) ) {
@@ -240,7 +240,7 @@ function crb_do_import() {
 
 				cerber_remove_issues();
 				crb_purge_settings_cache();
-				cerber_upgrade_settings(); // In case it was settings from an older version
+				cerber_upgrade_settings( $data['cerber_version'] ); // In case it was settings from an older version
 
 				$info[] = __( 'Plugin settings have been imported successfully', 'wp-cerber' );
 			}
@@ -350,7 +350,8 @@ function cerber_show_diag(){
 	    cerber_show_wp_diag();
 
         if ( $errors = crb_create_log_file_view( crb_get_diag_dir() . 'cerber-errors.log', 'crb-sw-errors-list' ) ) {
-	        crb_show_diag_section( 'WP Cerber Software Errors', $errors, 'crb-sw-errors-list' );
+	        $cta = '<p>Something’s not quite right, but we’re always working to make WP Cerber more robust. Help us improve by reporting these issues here: <a href="https://wpcerber.com/bug-report/" target="_blank">https://wpcerber.com/bug-report/</a></p>';
+	        crb_show_diag_section( 'WP Cerber Software Errors', $errors, array( 'copy_class' => 'crb-sw-errors-list', 'subtitle' => $cta ) );
         }
 
         crb_show_diag_section_ajax( 'Database Info' );
@@ -481,17 +482,21 @@ function cerber_show_diag(){
 /**
  * Renders and outputs a section on the Diagnostic admin page.
  *
- * Optionally, it can enable a "Copy to Clipboard" feature for the section content.
+ * This function generates a section with a title, optional subtitle, and HTML content.
+ * Optionally, it can enable a "Copy to Clipboard" feature for elements within the section.
  *
  * @param string $title      The plain text title displayed at the top of the section.
  * @param string $content    The HTML-formatted content displayed within the section.
- * @param string $copy_class Optional. The CSS class name used to identify elements that can be copied to the clipboard.
- *                           When provided, a "Copy To Clipboard" link is rendered, allowing users to copy
- *                           all text content from the elements associated with this class.
+ * @param array  $args       Optional parameters:
+ *
+ *     @type string $subtitle   An optional subtitle displayed below the title.
+ *     @type string $copy_class The CSS class name for elements that can be copied to the clipboard.
+ *                              If provided, a "Copy to Clipboard" link is rendered, allowing users
+ *                              to copy text content from elements with this class.
  *
  * @return void
  */
-function crb_show_diag_section( string $title, string $content, string $copy_class = '' ) {
+function crb_show_diag_section( string $title, string $content, array $args = [] ) {
 	global $cerber_diag_start;
 	static $previous;
 
@@ -501,10 +506,12 @@ function crb_show_diag_section( string $title, string $content, string $copy_cla
 
 	$took_time = 1000 * ( microtime( true ) - $previous );
 
-	$copy = $copy_class ? crb_copy_to_clipboard( $copy_class, false ) : '';
+	$copy = isset( $args['copy_class'] ) ? crb_copy_to_clipboard( $args['copy_class'], false ) : '';
 	$header = crb_generate_html_flex( array( '<h3>' . $title . '</h3>', $copy ) );
 
-	echo '<div class="crb-diag-section" data-took_time="' . $took_time . '">' . $header . '<div class="crb-diag-inner">' . $content . '</div></div>' . "\n";
+	$subtitle = $args['subtitle'] ?? '';
+
+	echo '<div class="crb-diag-section" data-took_time="' . $took_time . '">' . $header . $subtitle . '<div class="crb-diag-inner">' . $content . '</div></div>' . "\n";
 
 	$previous = microtime( true );
 }
@@ -570,7 +577,7 @@ function cerber_show_lic() {
             <input type="hidden" name="cerber_admin_do" value="install_key">
 			<?php
 			cerber_nonce_field( 'control', true );
-            submit_button();
+			submit_button( __( 'Save', 'wp-cerber' ) );
             ?>
         </div>
     </form>
@@ -819,6 +826,7 @@ function crb_create_log_file_view( string $file_path, string $item_class = '' ):
 			$errors .= "Version:\t" . esc_textarea( $error[4] ) . '<br/>';
 			$errors .= "PHP:\t" . esc_textarea( $error[5] ) . '<br/>';
 			$errors .= "WP:\t" . esc_textarea( $error[6] ) . '<br/>';
+			$errors .= "URI:\t" . esc_textarea( $error[7] ?? '' ) . '<br/>';
 		}
 
 		$entries [] = array( cerber_date( $entry['time'] ), '<div class="' . crb_boring_escape( $item_class ) . '" style="white-space: pre-wrap; tab-size: 10;">' . $errors . '</div>' . "\n" );
@@ -829,7 +837,17 @@ function crb_create_log_file_view( string $file_path, string $item_class = '' ):
 	return $ret;
 }
 
-function cerber_make_plain_table( array $data, array $header = null, $first_header = false, $eq = false ) {
+/**
+ * Generates plain HTML table for internal use. Cell values must be escaped.
+ *
+ * @param array $table_rows Table body rows. Values must be escaped.
+ * @param array $table_header Table header cells. Values must be escaped.
+ * @param bool $first_header If true highlight values in the first column
+ * @param bool $eq
+ *
+ * @return string HTML code of the table
+ */
+function cerber_make_plain_table( array $table_rows, array $table_header = [], bool $first_header = false, bool $eq = false ) {
 	$class = 'crb-monospace ';
 
 	if ( $first_header ) {
@@ -842,11 +860,11 @@ function cerber_make_plain_table( array $data, array $header = null, $first_head
 
 	$ret = '<div class="crb-plain-table"><table class="' . $class . '">';
 
-	if ( $header ) {
-		$ret .= '<tr class="crb-plain-header"><td>' . implode( '</td><td>', $header ) . '</td></tr>';
+	if ( $table_header ) {
+		$ret .= '<tr class="crb-plain-header"><td>' . implode( '</td><td>', $table_header ) . '</td></tr>';
 	}
 
-	foreach ( $data as $row ) {
+	foreach ( $table_rows as $row ) {
 
 		$bottom_row = '';
 
@@ -943,28 +961,28 @@ function cerber_table_info( $table ) {
 	$cols = $wpdb->get_results( "SHOW FULL COLUMNS FROM " . $table );
 
 	$tb = array();
-	//$columns    = '<table><tr><th style="width: 30%">Field</th><th style="width: 30%">Type</th><th style="width: 30%">Collation</th></tr>';
+
 	foreach ( $cols as $column ) {
 		$column    = obj_to_arr_deep( $column );
 		$field     = array_shift( $column );
 		$type      = array_shift( $column );
 		$collation = array_shift( $column );
 		$tb[] = array( $field, $type, $collation );
-
-		//$columns  .= '<tr><td><b>' . $field . '</b></td><td>' . $type . '</td><td>' . $collation . '</td></tr>';
 	}
-	//$columns .= '</table>';
 
 	$columns = cerber_make_plain_table( $tb, array( 'Field', 'Type', 'Collation' ) );
 
 	$rows = absint( cerber_db_get_var( 'SELECT COUNT(*) FROM ' . $table ) );
 
 	$sts = $wpdb->get_row( 'SHOW TABLE STATUS WHERE NAME = "' . $table .'"');
-	$tb = array();
-	foreach ( $sts as $key => $value ) {
+
+    $tb = array();
+
+    foreach ( $sts as $key => $value ) {
 		$tb[] = array( $key, $value );
 	}
-	$status = cerber_make_plain_table( $tb, null, true );
+
+    $status = cerber_make_plain_table( $tb, [], true );
 
 	$truncate = '';
 
@@ -978,7 +996,7 @@ function cerber_table_info( $table ) {
 
 function cerber_environment_diag() {
 	$issues = array();
-	if ( version_compare( '7.3', phpversion(), '>' ) ) {
+	if ( version_compare( '7.4', phpversion(), '>' ) ) {
 		$issues[] = 'Your website runs on an outdated (unsupported) version of PHP which is ' . phpversion() . '. We strongly encourage you to upgrade PHP to a newer version. See more at: <a target="_blank" href="https://www.php.net/supported-versions.php">https://www.php.net/supported-versions.php</a>';
 	}
 	if ( ! function_exists( 'http_response_code' ) ) {

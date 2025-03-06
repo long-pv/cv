@@ -884,7 +884,7 @@ div.crb-announcement p {
     word-break: keep-all;
 }
 
-#crb-traffic .crb-request .crb-http-ok {
+#crb-traffic .crb-http-ok {
     padding-left: 0;
 }
 
@@ -924,27 +924,30 @@ td.crb-traffic-details table td:nth-child(2) {
     border-bottom: solid 2px #ddd;
 }
 
-.crb-GET {
+#crb-traffic .crb-GET {
     display: none;
 }
-.crb-POST, .crb-ffile{
+#crb-traffic .crb-POST,
+#crb-traffic .crb-ffile,
+#crb-traffic .crb-http-302 {
+    margin-right: 0.5em;
     background-color: #69737d;
     color: #fff;
 }
-.crb-http-200 {
+#crb-traffic .crb-http-200 {
     color: #2db05a;
     font-weight: 600;
 }
-.crb-http-error {
+#crb-traffic .crb-http-error {
     background-color: #FF4633;
     color: #fff;
     padding: 3px 6px 3px 6px;
 }
-.crb-wp-type-515{
+#crb-traffic .crb-wp-type-515{
     background-color: #7A804A;
     color: #fff;
 }
-.crb-wp-type-520{
+#crb-traffic .crb-wp-type-520{
     background-color: #A00D5C;
     color: #fff;
 }
@@ -1008,7 +1011,7 @@ td.crb-traffic-details table td:nth-child(2) {
 .crb-fields-table td:nth-child(2) {
     color: #000;
 }
-.crb-fields-table td.crb-anti-bot {
+.crb-fields-table td.crb-highlight-this {
     color: #38ab6b;
 }
 
@@ -1591,7 +1594,7 @@ body.wp-cerber_page_cerber-integrity {
 
 #crb-started,
 #crb-finished {
-    white-space: nowrap;
+    /* white-space: nowrap;*/
 }
 
 .crb-scan-info {

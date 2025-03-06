@@ -133,7 +133,7 @@ add_action( 'personal_options', function ( $profileuser ) {
                                value="1" <?php
 						checked( ( $b ) ? true : false ); ?> />
 						<?php _e( 'User is not permitted to log into the website', 'wp-cerber' );
-						if ( $by_who = crb_user_blocked_by( $b ) ) {
+						if ( $b && $by_who = crb_user_blocked_by( $b ) ) {
 							echo ' - <i>' . $by_who . '</i>';
 						}
 						?>
@@ -185,7 +185,7 @@ add_action( 'personal_options', function ( $profileuser ) {
 
 add_action( 'edit_user_profile_update', function ( $user_id ) {
 
-	crb_admin_user2fa( $user_id );
+	crb_update_user_2fa( $user_id );
 
 	if ( $user_id == get_current_user_id() ) {
 		return;
@@ -201,9 +201,9 @@ add_action( 'edit_user_profile_update', function ( $user_id ) {
 
 } );
 
-add_action( 'personal_options_update', 'crb_admin_user2fa' );
+add_action( 'personal_options_update', 'crb_update_user_2fa' );
 
-function crb_admin_user2fa( $user_id ) {
+function crb_update_user_2fa( $user_id ) {
 	$cus = cerber_get_set( CRB_USER_SET, $user_id );
 
 	if ( ! $cus
@@ -914,7 +914,7 @@ function crb_pdata_exporter_act( $email_address, $page = 1 ) {
 
 	if ( ( ! $user = get_user_by( 'email', $email_address ) )
 	     || ! $user->ID
-	     || ! $rows = cerber_get_log( null, array( 'id' => $user->ID ), null, $limit ) ) {
+	     || ! $rows = CRB_Activity::get_log( [], array( 'id' => $user->ID ), [], $limit ) ) {
 
 		$done = true;
 		if ( $page == 1 ) { // Nothing was logged at all
@@ -1051,8 +1051,7 @@ function crb_pdata_eraser( $email_address, $page = 1 ) {
 	     && ( $user = get_user_by( 'email', $email_address ) )
 	     && $user->ID ) {
 
-		cerber_db_query( 'DELETE FROM ' . CERBER_LOG_TABLE . ' WHERE user_id = ' . $user->ID );
-		cerber_cache_set( CRB_ACT_HASH, array() );
+		CRB_Activity::delete( array( 'user_id' => $user->ID ) );
 
 		cerber_db_query( 'DELETE FROM ' . CERBER_TRAF_TABLE . ' WHERE user_id = ' . $user->ID );
 
@@ -1079,7 +1078,7 @@ function crb_pdata_eraser( $email_address, $page = 1 ) {
 		}
 
 		// Check if removing is OK
-		if ( cerber_get_log( null, array( 'id' => $user->ID ), null, 1 )
+		if ( CRB_Activity::get_log( [], array( 'id' => $user->ID ), [], 1 )
 		     || cerber_db_get_var( 'SELECT user_id FROM  ' . CERBER_TRAF_TABLE . ' WHERE user_id = ' . $user->ID . ' LIMIT 1' ) ) {
 
 			$removed  = false;
@@ -1126,22 +1125,22 @@ function crb_pdata_register_eraser( $erasers ) {
  *
  * @keywords assistant
  */
-function crb_get_user_auth_status( $user ) {
+function crb_get_user_auth_status( WP_User $user ) {
 	$nope = '';
-	$nope_more = '';
+	$nope_more = array();
 
 	if ( $b = crb_is_user_blocked( $user->ID ) ) {
 		$nope = crb_user_blocked_by( $b );
 		$nope_more = crb_generic_escape( $b['blocked_note'] );
 
-		return array( $nope, $nope_more, true );
+		return array( $nope, [ $nope_more ], true );
 	}
 
 	if ( crb_is_username_prohibited( $user->user_login ) ) {
 		$nope = __( 'username is prohibited', 'wp-cerber' );
 		$nope_more = '<a href="' . cerber_admin_link( 'global_policies' ) . '" target="_blank">' . __( "Check users' settings", 'wp-cerber' ) . '</a>';
 
-		return array( $nope, $nope_more, true );
+		return array( $nope, [ $nope_more ], true );
 	}
 
 	// Is user's IP blocked?
@@ -1185,24 +1184,21 @@ function crb_get_user_auth_status( $user ) {
 }
 
 /**
- * @param string $nope
- * @param string|array $nope_more
+ * Format user status info as HTML
+ *
+ * @param array $status User status info
  *
  * @return string
- *
- * @since 9.0.2
  */
-function crb_format_user_status( $nope, $nope_more, $prefix = true ) {
-	$p = ( $prefix ) ? __( 'User is not allowed to log in', 'wp-cerber' ) . ' - ' : '';
+function crb_format_user_status( array $status ): string {
+	$p = ! empty( $status[2] ) ? __( 'User is not allowed to log in', 'wp-cerber' ) . ' - ' : '';
 	$more = '';
-	if ( $nope_more ) {
-		if ( ! is_array( $nope_more ) ) {
-			$nope_more = array( $nope_more );
-		}
-		$more = '<p>' . implode( '</p><p>', $nope_more ) . '</p>';
+
+	if ( $status[1] ?? false ) {
+		$more = '<p>' . implode( '</p><p>', $status[1] ) . '</p>';
 	}
 
-	return '<span>' . $p . $nope . '</span>' . $more;
+	return '<span>' . $p . $status[0] . '</span>' . $more;
 }
 
 /**

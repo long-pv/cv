@@ -34,16 +34,14 @@ if ( ! defined( 'WPINC' ) ) { exit; }
 
 function nexus_init() {
 
-	if ( nexus_is_client() ) {
+	if ( nexus_is_client()
+	     && nexus_is_valid_request() ) {
 		require_once( __DIR__ . '/cerber-nexus-client.php' );
-		if ( nexus_is_valid_request() ) {
-			cerber_load_wp_constants();
-			nexus_client_process();
-		}
+		nexus_client_process();
 	}
-	elseif ( defined( 'WP_ADMIN' )
-	     || defined( 'WP_NETWORK_ADMIN' )
-	     || cerber_is_wp_cron() ) {
+	elseif ( is_admin()
+	         || defined( 'WP_NETWORK_ADMIN' )
+	         || cerber_is_wp_cron() ) {
 		if ( nexus_is_main() ) {
 			require_once( __DIR__ . '/cerber-nexus-manager.php' );
 			nexus_upgrade_db();
@@ -270,6 +268,12 @@ function nexus_enable_role() {
 
 // Common functions
 
+/**
+ * Check if the request is coming from main website.
+ * Performs all checks and validates all main website credentials.
+ *
+ * @return bool True if this request is valid and originated from the main website.
+ */
 function nexus_is_valid_request() {
 	static $ret;
 
@@ -302,23 +306,23 @@ function nexus_is_valid_request() {
 	}
 
 	$field_names = nexus_get_fields();
-	$xn          = array_shift( $field_names );
+	$xn = array_shift( $field_names );
 
 	if ( ( ! $auth = cerber_get_post( $field_names[ $xn ] ) )
 	     || ( ! $payload = cerber_get_post( $field_names[0] ) )
 	     || ( array_diff_key( array_keys( $_POST ), $field_names ) ) ) {
 
 		$ret = false;
+
 		return false;
 	}
 
 	nexus_diag_log( 'Check for a valid main website request ...' );
 
-	// It seems this is a request from the master
-	// Check master credentials and payload checksum
+	// It seems this is a request from the main website
+	// Check main website credentials and payload checksum
 
 	$role = nexus_get_role_data();
-	//$payload = stripslashes( $payload );
 
 	if ( hash_equals( $auth, hash( 'sha512', $role['slave']['nx_pass'] . sha1( $payload ) ) ) ) {
 		nexus_diag_log( 'Main website credentials are valid' );

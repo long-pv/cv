@@ -2271,8 +2271,8 @@ function crb_check_ownership( int &$stage_progress, int $num = 2 ) {
 		$prev_profile = $prev['contributors'][ $prev['owner'] ];
 		$new_profile = $new['contributors'][ $new['owner'] ];
 
-		/* translators: Here is an example "On August 28, 2024, at 9:23:04 PM, the scanner detected that the ownership of the plugin changed from Albert to John." */
-		$msg = sprintf( __( 'On %s the scanner detected that the ownership of the plugin changed from %s to %s.', 'wp-cerber' ), $last_date, '<a href="' . $prev_profile['profile'] . '" target="_blank">' . $prev_profile['display_name'] . '</a>', '<a href="' . $new_profile['profile'] . '" target="_blank">' . $new_profile['display_name'] . '</a>' );
+		/* translators: Here is an example "At August 28, 2025, 9:23:04 PM, the scanner detected that the ownership of the plugin changed from Albert to John." */
+		$msg = sprintf( __( 'At %s the scanner detected that the ownership of the plugin changed from %s to %s.', 'wp-cerber' ), $last_date, '<a href="' . $prev_profile['profile'] . '" target="_blank">' . $prev_profile['display_name'] . '</a>', '<a href="' . $new_profile['profile'] . '" target="_blank">' . $new_profile['display_name'] . '</a>' );
 
 		return array( CRB_Scan::format_single_issue( CERBER_CHO, array( 'msg_html' => $msg ) ) );
 
@@ -3935,7 +3935,7 @@ function cerber_scan_update_fields( $file_name_hash, $fields, $scan_id = null ) 
 		$scan_id = cerber_get_scan_id();
 	}
 
-	return cerber_db_update( CERBER_SCAN_TABLE, array( 'scan_id' => $scan_id, 'file_name_hash' => $file_name_hash ), $fields );
+	return cerber_db_update( cerber_get_db_prefix() . CERBER_SCAN_TABLE, array( 'scan_id' => $scan_id, 'file_name_hash' => $file_name_hash ), $fields );
 }
 
 function cerber_is_check_fs() {

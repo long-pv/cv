@@ -204,14 +204,12 @@ function crb_log_maintainer() {
 	$days_auth = absint( $settings['keeplog_auth'] ?? false ) ?: $days; // It may be not configured by the admin yet, since it's introduced in 8.5.6
 
 	if ( $days == $days_auth ) {
-		cerber_db_query( 'DELETE FROM ' . CERBER_LOG_TABLE . ' WHERE stamp < ' . ( $time - $days * 24 * 3600 ) );
+		CRB_Activity::delete( array( 'stamp' => array( '<', $time - $days * 24 * 3600 ) ) );
 	}
 	else {
-		cerber_db_query( 'DELETE FROM ' . CERBER_LOG_TABLE . ' WHERE user_id =0 AND stamp < ' . ( $time - $days * 24 * 3600 ) );
-		cerber_db_query( 'DELETE FROM ' . CERBER_LOG_TABLE . ' WHERE user_id !=0 AND stamp < ' . ( $time - $days_auth * 24 * 3600 ) );
+		CRB_Activity::delete( [ 'user_id' => 0, 'stamp' => array( '<', $time - $days * 24 * 3600 ) ] );
+		CRB_Activity::delete( [ 'user_id' => array( '!=', 0 ), 'stamp' => array( '<', $time - $days_auth * 24 * 3600 ) ] );
 	}
-
-	cerber_cache_set( CRB_ACT_HASH, array() );
 
 	$days = absint( $settings['tikeeprec'] ) ?: cerber_get_defaults( 'tikeeprec' );  // @since 8.5.6
 	$days_auth = absint( $settings['tikeeprec_auth'] ?? false ) ?: $days; // It may be not configured by the admin yet, since it's introduced in 8.5.6
@@ -515,7 +513,7 @@ class CRB_Plugin {
 				}
 
 				/* translators: Here %s is the date. */
-				$msg .= ' ' . sprintf( __( 'The last update was on %s', 'wp-cerber' ), cerber_date( $repo_data['modified_uts'], false ) );
+				$msg .= ' ' . sprintf( __( 'The last update was at %s', 'wp-cerber' ), cerber_date( $repo_data['modified_uts'], false ) );
 			}
 			else {
 				$msg = 'OK';
@@ -577,10 +575,6 @@ class CRB_Plugin {
 
 		$repo_data['updated_uts'] = time();
 
-		//$data = array( 'repo' => $repo_data );
-		//$key = substr( 'pl_data_' . $slug, 0, 255 );
-		//cerber_update_set( $key, $data );
-
 		self::update_plugin_data( $slug, array( 'repo' => $repo_data ) );
 
 		return $repo_data;
@@ -608,7 +602,7 @@ class CRB_Plugin {
 			}
 			else {
 				$value = (string) $value;
-				$sanitized[ $key ] = filter_var( substr( $value, 0, 300 ), FILTER_SANITIZE_STRING );
+				$sanitized[ $key ] = substr( strip_tags( $value ), 0, 300 );
 			}
 
 			$element_count ++;
@@ -932,11 +926,11 @@ function cerber_issue_monitor() {
 	// Part 3. Critical things we monitor continuously
 
 	if ( version_compare( CERBER_REQ_PHP, phpversion(), '>' ) ) {
-		$notices['php'] = sprintf( __( 'WP Cerber requires PHP %s or higher. You are running %s.', 'wp-cerber' ), CERBER_REQ_PHP, phpversion() );
+		$notices['php'] = sprintf( __( 'WP Cerber requires PHP version %s or higher, but your web server is currently running PHP %s.', 'wp-cerber' ), CERBER_REQ_PHP, phpversion() );
 	}
 
 	if ( ! crb_wp_version_compare( CERBER_REQ_WP ) ) {
-		$notices['wordpress'] = sprintf( __( 'WP Cerber requires WordPress %s or higher. You are running %s.', 'wp-cerber' ), CERBER_REQ_WP, cerber_get_wp_version() );
+		$notices['wordpress'] = sprintf( __( 'WP Cerber requires WordPress version %s or higher. Your WordPress version is %s. Please update your WordPress to the latest version.', 'wp-cerber' ), CERBER_REQ_WP, cerber_get_wp_version() );
 	}
 
 	if ( defined( 'CERBER_CLOUD_DEBUG' ) && CERBER_CLOUD_DEBUG ) {

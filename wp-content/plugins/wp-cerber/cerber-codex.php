@@ -34,16 +34,16 @@ const CRB_PL726 = 'ECPL42';
 const CRB_PL727 = 'ECPL43';
 
 /**
- * Returns an error message corresponding to a given WP Cerber's error ID.
+ * Returns an error message corresponding to the given WP Cerber error ID.
  *
- * @param string|null $id The error ID. If not provided, returns an array of all error messages.
+ * @param string $id The error ID. If not provided, returns an array of all error messages.
  *
- * @return string|array The error message string if an ID is provided and exists in the error message array,
- *               otherwise a string indicating an unknown error ID, or an array of all error messages.
+ * @return string|string[]  The error message string if the ID is provided and exists in the error message array,
+ *                          otherwise a string indicating an unknown error ID, or an array of all error messages.
  *
  * @since 9.6.2.4
  */
-function crb_get_error_msg( string $id = null ) {
+function crb_get_error_msg( $id = '' ) {
 	static $messages;
 
 	if ( ! $messages ) {
