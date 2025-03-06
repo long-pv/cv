@@ -1,0 +1,78 @@
+# https://wordpress.org/download/
+# https://underscores.me/
+
+# xóa các file không cần thiết
+# find . \( -type d \( -name "twentytwentyone" -o -name "twentytwentytwo" -o -name "twentytwentythree" -o -name "twentytwentyfour" \) -exec rm -rf {} \; \) -o \( -type f \( -name "*.txt" -o -name "*.md" -o -name "*.html" -o -name "*.DS" -o -name "*.lock" -o -name "*.log" -o -name "*.wpress" -o -name "*.zip" -o -name "*.7z" -o -name "debug.log" \) -exec rm -f {} \; \)
+
+# Nếu lỗi gitignore thì đây là cách khắc phục
+# B1: git rm -r --cached .
+# B2: git add .
+# B3: Vào sourcetree để kiểm tra
+
+# Lấy tất cả các file thay đổi vào 1 folder để share drive
+# git diff --name-only commit_id_new commit_id_old | while read -r file; do mkdir -p "changed_files/$(dirname "$file")" && cp "$file" "changed_files/$file"; done
+
+# bảo mật wp trong file wp-config.php
+# define('FS_METHOD', 'direct');
+# define('DISABLE_WP_CRON', true);
+# define('AUTOMATIC_UPDATER_DISABLED', true);
+# define('WP_AUTO_UPDATE_CORE', false);
+# define('DISALLOW_FILE_MODS', true);
+# define('DISALLOW_FILE_EDIT', true);
+
+# // Bật chế độ debug
+# define('WP_DEBUG', true);
+# define('WP_DEBUG_LOG', false);
+# define('WP_DEBUG_DISPLAY', true);
+# @ini_set('error_reporting', E_ERROR | E_PARSE);
+# define('SCRIPT_DEBUG', true);
+
+# root wordpress
+.htaccess
+*.txt
+*.md
+*.html
+*.DS
+*.lock
+*.log
+*.wpress
+*.zip
+*.7z
+*/LICENSE
+*.sql
+# wp-config.php
+wp-config.php
+backup
+debug.log
+dup-installer/
+changed_files/
+
+# wp-content
+wp-content/wpo-cache/
+wp-content/advanced-cache.php
+wp-content/uploads/
+wp-content/languages/
+wp-content/plugins/*/*.txt
+wp-content/backups-dup-lite/
+wp-content/upgrade/
+# wp-content/themes/*/languages/
+# wp-content/themes/*/assets/css/
+wp-content/themes/*/js
+wp-content/themes/*/style-rtl.css
+wp-content/ai1wm-backups/
+wp-content/cache/
+wp-content/autoptimize_404_handler.php
+wp-content/upgrade-temp-backup
+!wp-content/themes/*/inc/export_pdf/*.lock
+
+# wp-content / theme
+wp-content/themes/twentytwentyone
+wp-content/themes/twentytwentytwo
+wp-content/themes/twentytwentythree
+wp-content/themes/twentytwentyfour
+
+# wp-content / theme / inc
+wp-content/themes/*/inc/custom-header.php
+wp-content/themes/*/inc/customizer.php
+wp-content/themes/*/inc/jetpack.php
+wp-content/themes/*/inc/template-tags.php
