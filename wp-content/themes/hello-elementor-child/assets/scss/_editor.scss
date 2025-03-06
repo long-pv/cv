@@ -1,15 +1,48 @@
-.editor {
+.editor,
+.editor .elementor-widget-container {
+    color: #333;
+    font-size: 16px;
+    text-align: justify;
+
     &>* {
         &:last-child {
             margin-bottom: 0px;
         }
     }
 
+    h1 {
+        font-size: 28px !important;
+    }
+
+    h2 {
+        font-size: 24px !important;
+    }
+
+    h3 {
+        font-size: 22px !important;
+    }
+
+    h4 {
+        font-size: 20px !important;
+    }
+
+    h5 {
+        font-size: 18px !important;
+    }
+
+    h6 {
+        font-size: 16px !important;
+    }
+
     a {
         text-decoration: underline !important;
         transition: all 0.3s;
         white-space: inherit;
-        color: $color_primary !important;
+        color: #000 !important;
+
+        &:hover {
+            color: #FD6F00 !important;
+        }
     }
 
     ul {

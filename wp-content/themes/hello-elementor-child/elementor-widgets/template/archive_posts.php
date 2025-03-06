@@ -153,13 +153,14 @@ class Archive_Posts_Widget extends \Elementor\Widget_Base
 ?>
                 <div class="<?php echo esc_attr($col_class); ?>">
                     <div class="archive_post_item">
-                        <?php if (has_post_thumbnail()): ?>
-                            <a class="d-block" href="<?php the_permalink(); ?>">
-                                <?php echo get_the_post_thumbnail(get_the_ID(), 'large'); ?>
-                            </a>
-                        <?php endif; ?>
-                        <h3><?php echo get_the_title(); ?></h3>
-                        <p><?php echo get_the_excerpt(); ?></p>
+                        <a class="archive_post_item_link" href="<?php the_permalink(); ?>">
+                            <?php if (has_post_thumbnail()): ?>
+                                <div class="archive_post_item_img">
+                                    <?php echo get_the_post_thumbnail(get_the_ID(), 'full'); ?>
+                                </div>
+                            <?php endif; ?>
+                            <h3 class="archive_post_item_title"><?php echo get_the_title(); ?></h3>
+                        </a>
                     </div>
                 </div>
 <?php
@@ -168,7 +169,7 @@ class Archive_Posts_Widget extends \Elementor\Widget_Base
             echo '</div>';
 
             if ($enable_pagination) {
-                echo '<div class="pagination">';
+                echo '<div class="pagination_custom">';
                 echo paginate_links(
                     array(
                         'total' => $query_post->max_num_pages,

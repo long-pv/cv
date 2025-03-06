@@ -1,13 +1,13 @@
 {
     "key": "group_671efd93e23f0",
-    "title": "Test",
+    "title": "General settings",
     "fields": [
         {
-            "key": "field_671efd94876b3",
-            "label": "Test",
-            "name": "test",
+            "key": "field_67c1c7e66c034",
+            "label": "Turn off admin notifications",
+            "name": "turn_off_admin_notifications",
             "aria-label": "",
-            "type": "text",
+            "type": "true_false",
             "instructions": "",
             "required": 0,
             "conditional_logic": 0,
@@ -16,9 +16,71 @@
                 "class": "",
                 "id": ""
             },
-            "default_value": "",
-            "maxlength": "",
+            "message": "",
+            "default_value": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
+            "key": "field_67c1ca276ff1a",
+            "label": "Hide comment function",
+            "name": "hide_comment_function",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
+            "key": "field_67c1d2daf0c90",
+            "label": "Disable auto update",
+            "name": "disable_auto_update",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "ui_on_text": "",
+            "ui_off_text": "",
+            "ui": 1
+        },
+        {
+            "key": "field_67c1d7d1ce8b3",
+            "label": "Upload size limit (MB)",
+            "name": "upload_size_limit",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": 2,
+            "min": 1,
+            "max": 100,
             "placeholder": "",
+            "step": 1,
             "prepend": "",
             "append": ""
         }
@@ -26,9 +88,9 @@
     "location": [
         [
             {
-                "param": "block",
+                "param": "options_page",
                 "operator": "==",
-                "value": ""
+                "value": "general-settings"
             }
         ]
     ],
@@ -41,5 +103,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 0,
-    "modified": 1730084266
+    "modified": 1740756995
 }
